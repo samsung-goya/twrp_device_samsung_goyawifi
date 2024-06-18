@@ -34,12 +34,19 @@ jobs:
         git clone --branch twrp-5.1 --single-branch https://github.com/samsung-goya/twrp_device_samsung_goyawifi.git ~/TWRP/device/samsung/goyawifi
     - name: Building TWRP
       run: |
+        OLDPATH=$PATH
+        OLDJAVAHOME=$JAVA_HOME
+        export PATH="$HOME/.jdk_7/java-se-7u75-ri/bin:$PATH"
+        export JAVA_HOME="$HOME/.jdk_7/java-se-7u75-ri"
         cd ~/TWRP
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         lunch omni_goyawifi-eng
         make -j$(nproc --all) recoveryimage
+        export PATH=$OLDPATH
+        export JAVA_HOME=$OLDJAVAHOME
+
     - name: Uploading TWRP builds
       uses: actions/upload-artifact@v2
       with:
