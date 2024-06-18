@@ -1,4 +1,4 @@
-# Common device tree for Galaxy Tab 3 Lite 7.0 (goyawifi)
+# Device Tree for Galaxy Tab 3 Lite 7.0 (goyawifi)
 
 Copyright 2024, TeamWin Recovery Project
 
