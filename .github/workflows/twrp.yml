@@ -40,7 +40,7 @@ jobs:
         export JAVA_HOME="$HOME/.jdk_7/java-se-7u75-ri"
         cd ~/TWRP
         echo Bypassing sepolicy build rules for now, since they're borked
-        sed -i 's/-Werror / /g' external/sepolicy/tools/Android.mk
+        py device/samsung/goyawifi/.github/workflows/twrp_fixsepol.py
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
