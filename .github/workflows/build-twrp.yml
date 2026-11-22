@@ -107,12 +107,12 @@ jobs:
           echo "$HOME/.bin" >> $GITHUB_PATH
 
       - name: Checkout device tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: device_tree
 
       - name: Restore ccache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/ccache
           key: ccache-${{ github.event.inputs.twrp_branch || 'twrp-11' }}-${{ github.run_id }}
@@ -163,6 +163,13 @@ jobs:
           mka recoveryimage -j"$(nproc --all)"
           ccache -s
 
+      - name: Save ccache
+        if: ${{ !cancelled() }}
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/ccache
+          key: ccache-${{ github.event.inputs.twrp_branch || 'twrp-11' }}-${{ github.run_id }}
+
       - name: Setup SSH session
         if: ${{ failure() || inputs.enable_ssh }}
         uses: owenthereal/action-upterm@v2
@@ -181,7 +188,7 @@ jobs:
           ls -lh "${GITHUB_WORKSPACE}/artifacts/"
 
       - name: Upload TWRP artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: twrp-goyawifi
           path: artifacts/
@@ -205,6 +212,7 @@ jobs:
           fi
           BRANCH="${{ github.event.inputs.twrp_branch || 'twrp-11' }}"
           gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
             artifacts/twrp-goyawifi.img \
             artifacts/twrp-goyawifi.tar \
             --title "TWRP for SM-T110 (goyawifi) - ${BUILD_DATE}" \
