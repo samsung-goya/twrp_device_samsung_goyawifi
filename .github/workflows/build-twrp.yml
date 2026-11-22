@@ -35,7 +35,8 @@ jobs:
       - name: Free up disk space
         run: |
           df -h
-          sudo rm -rf \
+          EMPTY_DIR=$(mktemp -d)
+          for dir in \
             /usr/share/dotnet \
             /usr/local/lib/android \
             /opt/ghc \
@@ -44,7 +45,13 @@ jobs:
             /usr/local/graalvm \
             /usr/local/.ghcup \
             /usr/local/share/powershell \
-            /usr/local/share/chromium
+            /usr/local/share/chromium; do
+            if [ -d "$dir" ]; then
+              (sudo rsync -a --delete "$EMPTY_DIR/" "$dir/" && sudo rmdir "$dir") &
+            fi
+          done
+          wait
+          rmdir "$EMPTY_DIR"
           sudo swapoff -a || true
           sudo rm -f /mnt/swapfile || true
           sudo apt-get clean
