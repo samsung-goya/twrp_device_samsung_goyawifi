@@ -111,6 +111,14 @@ jobs:
         with:
           path: device_tree
 
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/ccache
+          key: ccache-${{ github.event.inputs.twrp_branch || 'twrp-11' }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ github.event.inputs.twrp_branch || 'twrp-11' }}-
+
       - name: Initialize & sync stripped TWRP minimal manifest
         run: |
           BRANCH="${{ github.event.inputs.twrp_branch || 'twrp-11' }}"
@@ -142,11 +150,18 @@ jobs:
           VARIANT="${{ github.event.inputs.build_type || 'eng' }}"
           export ALLOW_MISSING_DEPENDENCIES=true
           export LC_ALL=C
+          export USE_CCACHE=1
+          export CCACHE_EXEC=/usr/bin/ccache
+          export CCACHE_DIR=/tmp/ccache
+          ccache -M 8G
+          ccache -o compression=true
+          ccache -z
 
           set +u
           source build/envsetup.sh
           lunch "twrp_goyawifi-${VARIANT}"
           mka recoveryimage -j"$(nproc --all)"
+          ccache -s
 
       - name: Setup SSH session
         if: ${{ failure() || inputs.enable_ssh }}
