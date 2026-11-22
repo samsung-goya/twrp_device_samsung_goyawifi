@@ -2,8 +2,8 @@
 #
 # Modern TWRP product configuration for Samsung Galaxy Tab 3 Lite 7.0 Wi-Fi (SM-T110 / goyawifi)
 
-# Inherit base AOSP & TWRP common configurations
-$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+# Inherit minimal base AOSP & TWRP common configurations
+$(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
 $(call inherit-product, vendor/twrp/config/common.mk)
 
 # Inherit device-specific configuration
