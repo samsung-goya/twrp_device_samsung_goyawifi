@@ -1,0 +1,22 @@
+# TWRP fstab for Samsung Galaxy Tab 3 Lite 7.0 Wi-Fi (SM-T110 / goyawifi)
+#
+# Verified partition table on mmcblk0 (SanDisk SEM08G):
+#   p4  = EFS      (20 MiB)
+#   p8  = PARAM    (16 MiB)
+#   p9  = RECOVERY (16 MiB)
+#   p10 = KERNEL   (16 MiB)
+#   p14 = CACHE    (344 MiB)
+#   p15 = SYSTEM   (1485 MiB)
+#   p16 = USER     (5130 MiB)
+
+# mount point   fstype  device                                      device2               flags
+/efs            ext4    /dev/block/mmcblk0p4                                              flags=display="EFS";backup=1
+/param          emmc    /dev/block/mmcblk0p8                                              flags=display="Param";backup=1
+/recovery       emmc    /dev/block/mmcblk0p9                                              flags=display="Recovery";backup=1;flashimg=1
+/boot           emmc    /dev/block/mmcblk0p10                                             flags=display="Boot";backup=1;flashimg=1
+/cache          ext4    /dev/block/mmcblk0p14                                             flags=display="Cache";backup=1;wipeingui
+/system         ext4    /dev/block/mmcblk0p15                                             flags=display="System";backup=1;wipeingui
+/system_image   emmc    /dev/block/mmcblk0p15                                             flags=display="System Image";backup=1;flashimg=1
+/data           f2fs    /dev/block/mmcblk0p16                                             flags=display="Data";backup=1;wipeingui;encryptable=footer;length=-16384
+/external_sd    auto    /dev/block/mmcblk1p1                        /dev/block/mmcblk1    flags=display="MicroSD";storage;wipeingui;removable
+/usb_otg        auto    /dev/block/sda1                             /dev/block/sda        flags=display="USB OTG";storage;wipeingui;removable

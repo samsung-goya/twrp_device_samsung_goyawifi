@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# ueventd permissions for Marvell PXA988 / Samsung goyawifi (Linux 4.19)
+
+# DRM & GPU (mmp-drm + etnaviv)
+/dev/dri/card*            0666   system     graphics
+/dev/dri/renderD*         0666   system     graphics
+
+# ION & ashmem
+/dev/ion                  0666   system     system

@@ -1,0 +1,155 @@
+name: Build TWRP (goyawifi)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      twrp_branch:
+        description: "minimal-manifest-twrp branch"
+        required: false
+        default: "twrp-12.1"
+      build_type:
+        description: "Build variant"
+        required: false
+        default: "eng"
+        type: choice
+        options:
+          - eng
+          - userdebug
+
+env:
+  TWRP_MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
+  DEVICE_PATH: device/samsung/goyawifi
+  BUILD_DIR: /tmp/twrp-build
+
+jobs:
+  build:
+    name: Build twrp_goyawifi
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Free up disk space
+        run: |
+          df -h
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost \
+            /usr/local/graalvm \
+            /usr/local/.ghcup \
+            /usr/local/share/powershell \
+            /usr/local/share/chromium
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile || true
+          sudo apt-get clean
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc \
+            bison \
+            build-essential \
+            ccache \
+            curl \
+            device-tree-compiler \
+            flex \
+            g++-multilib \
+            gcc-multilib \
+            git \
+            git-lfs \
+            gnupg \
+            gperf \
+            imagemagick \
+            lib32ncurses5-dev \
+            lib32readline-dev \
+            lib32z1-dev \
+            liblz4-tool \
+            libncurses5 \
+            libncurses5-dev \
+            libsdl1.2-dev \
+            libssl-dev \
+            libxml2 \
+            libxml2-utils \
+            lzop \
+            pngcrush \
+            python-is-python3 \
+            python3 \
+            rsync \
+            schedtool \
+            squashfs-tools \
+            xsltproc \
+            zip \
+            zlib1g-dev
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/.bin
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o ~/.bin/repo
+          chmod a+rx ~/.bin/repo
+          echo "$HOME/.bin" >> $GITHUB_PATH
+
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+        with:
+          path: device_tree
+
+      - name: Initialize & sync stripped TWRP minimal manifest
+        run: |
+          BRANCH="${{ github.event.inputs.twrp_branch || 'twrp-12.1' }}"
+          mkdir -p "${{ env.BUILD_DIR }}"
+          cd "${{ env.BUILD_DIR }}"
+
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git config --global color.ui false
+
+          repo init -q --depth=1 -u "${{ env.TWRP_MANIFEST_URL }}" -b "${BRANCH}"
+          repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j"$(nproc --all)"
+
+          # Strip .repo and unused darwin prebuilts to maximize free disk space
+          rm -rf .repo
+          rm -rf prebuilts/clang/host/darwin-x86 prebuilts/gcc/darwin-x86
+          df -h
+
+      - name: Copy device tree into TWRP source
+        run: |
+          mkdir -p "${{ env.BUILD_DIR }}/${{ env.DEVICE_PATH }}"
+          rsync -a --exclude='.git' --exclude='.github' \
+            "${GITHUB_WORKSPACE}/device_tree/" \
+            "${{ env.BUILD_DIR }}/${{ env.DEVICE_PATH }}/"
+
+      - name: Build TWRP recovery image
+        run: |
+          cd "${{ env.BUILD_DIR }}"
+          VARIANT="${{ github.event.inputs.build_type || 'eng' }}"
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+
+          set +u
+          source build/envsetup.sh
+          lunch "twrp_goyawifi-${VARIANT}"
+          mka recoveryimage -j"$(nproc --all)"
+
+      - name: Package artifacts (recovery.img + Odin .tar)
+        run: |
+          OUT_DIR="${{ env.BUILD_DIR }}/out/target/product/goyawifi"
+          mkdir -p "${GITHUB_WORKSPACE}/artifacts"
+          cp "${OUT_DIR}/recovery.img" "${GITHUB_WORKSPACE}/artifacts/twrp-goyawifi.img"
+          tar -H ustar -C "${OUT_DIR}" -cf "${GITHUB_WORKSPACE}/artifacts/twrp-goyawifi.tar" recovery.img
+          sha256sum "${GITHUB_WORKSPACE}/artifacts/"* > "${GITHUB_WORKSPACE}/artifacts/SHA256SUMS"
+          ls -lh "${GITHUB_WORKSPACE}/artifacts/"
+
+      - name: Upload TWRP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp-goyawifi
+          path: artifacts/
+          retention-days: 30
