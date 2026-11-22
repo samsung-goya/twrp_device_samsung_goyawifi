@@ -34,5 +34,5 @@ $(INSTALLED_RECOVERYIMAGE_TARGET): $(recovery_ramdisk) $(recovery_kernel) $(GOYA
 		cp $(recovery_ramdisk) $(recovery_ramdisk).xz; \
 	fi
 	$(hide) ls -lh $(recovery_kernel) $(recovery_ramdisk) $(recovery_ramdisk).xz
-	$(call build-goyawifi-bootimg,$(recovery_kernel),$(recovery_ramdisk).xz,$@) || (du -ah $(TARGET_RECOVERY_ROOT_OUT) | sort -rh | head -n 25; exit 1)
+	$(call build-goyawifi-bootimg,$(recovery_kernel),$(recovery_ramdisk).xz,$@) || (/usr/bin/du -ah $(TARGET_RECOVERY_ROOT_OUT) | /usr/bin/sort -rh | head -n 30; exit 1)
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_RECOVERYIMAGE_PARTITION_SIZE),raw)
