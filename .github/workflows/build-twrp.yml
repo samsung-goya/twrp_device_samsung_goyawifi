@@ -45,8 +45,6 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL &
           sudo rm -rf /opt/ghc /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup /usr/local/share/powershell /usr/local/share/chromium &
           wait
-          sudo swapoff -a || true
-          sudo rm -f /mnt/swapfile || true
           sudo apt-get clean
           df -h
 
