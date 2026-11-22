@@ -35,23 +35,11 @@ jobs:
       - name: Free up disk space
         run: |
           df -h
-          EMPTY_DIR=$(mktemp -d)
-          for dir in \
-            /usr/share/dotnet \
-            /usr/local/lib/android \
-            /opt/ghc \
-            /opt/hostedtoolcache/CodeQL \
-            /usr/local/share/boost \
-            /usr/local/graalvm \
-            /usr/local/.ghcup \
-            /usr/local/share/powershell \
-            /usr/local/share/chromium; do
-            if [ -d "$dir" ]; then
-              (sudo rsync -a --delete "$EMPTY_DIR/" "$dir/" && sudo rmdir "$dir") &
-            fi
-          done
+          sudo rm -rf /usr/local/lib/android &
+          sudo rm -rf /usr/share/dotnet &
+          sudo rm -rf /opt/hostedtoolcache/CodeQL &
+          sudo rm -rf /opt/ghc /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup /usr/local/share/powershell /usr/local/share/chromium &
           wait
-          rmdir "$EMPTY_DIR"
           sudo swapoff -a || true
           sudo rm -f /mnt/swapfile || true
           sudo apt-get clean
@@ -119,7 +107,7 @@ jobs:
           git config --global color.ui false
 
           repo init -q --depth=1 -u "${{ env.TWRP_MANIFEST_URL }}" -b "${BRANCH}"
-          repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j"$(nproc --all)"
+          repo sync -c -v --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j"$(nproc --all)"
 
           # Strip .repo and unused darwin prebuilts to maximize free disk space
           rm -rf .repo
