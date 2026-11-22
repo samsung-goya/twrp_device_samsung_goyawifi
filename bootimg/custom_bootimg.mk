@@ -27,6 +27,11 @@ $(INSTALLED_BOOTIMAGE_TARGET): $(INTERNAL_BOOTIMAGE_FILES) $(GOYA_MKBOOTIMG) $(G
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_BOOTIMAGE_PARTITION_SIZE),raw)
 
 $(INSTALLED_RECOVERYIMAGE_TARGET): $(recovery_ramdisk) $(recovery_kernel) $(GOYA_KERNEL_DTB) $(RECOVERYIMAGE_EXTRA_DEPS) $(GOYA_MKBOOTIMG)
-	@echo "----- Making TWRP recovery image ------"
-	$(call build-goyawifi-bootimg,$(recovery_kernel),$(recovery_ramdisk),$@)
+	@echo "----- Making TWRP recovery image (XZ ramdisk) ------"
+	$(hide) if [ "$$(/usr/bin/head -c 2 $(recovery_ramdisk) | /usr/bin/od -An -tx1 | tr -d ' \n')" = "1f8b" ]; then \
+		/usr/bin/gzip -dc $(recovery_ramdisk) | /usr/bin/xz --check=crc32 -9 -T0 > $(recovery_ramdisk).xz; \
+	else \
+		cp $(recovery_ramdisk) $(recovery_ramdisk).xz; \
+	fi
+	$(call build-goyawifi-bootimg,$(recovery_kernel),$(recovery_ramdisk).xz,$@)
 	$(hide) $(call assert-max-image-size,$@,$(BOARD_RECOVERYIMAGE_PARTITION_SIZE),raw)
