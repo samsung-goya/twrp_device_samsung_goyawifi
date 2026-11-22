@@ -11,6 +11,9 @@ workspace. The kernel itself contains no rootfs or forced command line.
 from pathlib import Path
 import argparse,gzip,hashlib,json,struct,subprocess,tempfile
 
+FDTGET='/usr/bin/fdtget' if Path('/usr/bin/fdtget').exists() else 'fdtget'
+FDTPUT='/usr/bin/fdtput' if Path('/usr/bin/fdtput').exists() else 'fdtput'
+
 def empty_cpio():
  name=b'TRAILER!!!\0';fields=[0,0,0,0,1,0,0,0,0,0,0,len(name),0]
  blob=b'070701'+''.join(f'{v:08x}' for v in fields).encode()+name
@@ -24,25 +27,25 @@ def make_payload(kernel,dtb,ramdisk,cmdline,load,fdt_tail_ramdisk=False):
  assert not any(v.startswith('initrd=') for v in cmdline.split()),'use DT initrd properties, not fixed initrd= arguments'
  with tempfile.TemporaryDirectory(prefix='goyawifi-boot-') as tmp:
   path=Path(tmp)/'board.dtb';path.write_bytes(dtb)
-  compatible=subprocess.check_output(['fdtget',str(path),'/','compatible']).decode().split()
+  compatible=subprocess.check_output([FDTGET,str(path),'/','compatible']).decode().split()
   assert 'samsung,goyawifi' in compatible,'image packer is only for the SM-T110'
-  subprocess.run(['fdtput','-p','-t','s',str(path),'/chosen','bootargs',cmdline],check=True)
+  subprocess.run([FDTPUT,'-p','-t','s',str(path),'/chosen','bootargs',cmdline],check=True)
   if not fdt_tail_ramdisk:
    dtb_bytes=path.read_bytes()
-   assert subprocess.check_output(['fdtget',str(path),'/chosen','bootargs']).decode().strip()==cmdline
+   assert subprocess.check_output([FDTGET,str(path),'/chosen','bootargs']).decode().strip()==cmdline
    return kernel+dtb_bytes,{'initrd_bytes':len(ramdisk),'fdt_bytes':len(dtb_bytes),'layout':'zImage + appended DTB (/chosen/bootargs) + standard Android ramdisk slot'}
-  subprocess.run(['fdtput','-p','-t','x',str(path),'/chosen','samsung,goyawifi-initrd-size',f'{len(ramdisk):x}'],check=True)
+  subprocess.run([FDTPUT,'-p','-t','x',str(path),'/chosen','samsung,goyawifi-initrd-size',f'{len(ramdisk):x}'],check=True)
   for prop in ['linux,initrd-start','linux,initrd-end']:
-   subprocess.run(['fdtput','-p','-t','x',str(path),'/chosen',prop,'0'],check=True)
+   subprocess.run([FDTPUT,'-p','-t','x',str(path),'/chosen',prop,'0'],check=True)
   size=path.stat().st_size;gap=4096;start=load+len(kernel)+size+gap;end=start+len(ramdisk)
   assert end<0x17000000,'payload reaches the reserved framebuffer region'
   for prop,value in [('linux,initrd-start',start),('linux,initrd-end',end)]:
-   subprocess.run(['fdtput','-t','x',str(path),'/chosen',prop,f'{value:x}'],check=True)
+   subprocess.run([FDTPUT,'-t','x',str(path),'/chosen',prop,f'{value:x}'],check=True)
   dtb=bytearray(path.read_bytes());assert len(dtb)==size
   # Account for the initramfs as trailing FDT free space, not DT structure.
   struct.pack_into('>I',dtb,4,len(dtb)+gap+len(ramdisk))
   combined=bytes(dtb)+bytes(gap)+ramdisk;path.write_bytes(combined)
-  assert subprocess.check_output(['fdtget',str(path),'/chosen','bootargs']).decode().strip()==cmdline
+  assert subprocess.check_output([FDTGET,str(path),'/chosen','bootargs']).decode().strip()==cmdline
  return kernel+combined,{'initrd_start':hex(start),'initrd_end':hex(end),'initrd_bytes':len(ramdisk),'fdt_bytes':len(combined),'layout':'zImage + FDT with external initramfs in trailing free space'}
 
 def main():

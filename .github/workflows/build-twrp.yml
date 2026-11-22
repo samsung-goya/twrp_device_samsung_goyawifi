@@ -20,6 +20,11 @@ on:
         options:
           - eng
           - userdebug
+      enable_ssh:
+        description: "Open interactive SSH (tmate) session"
+        required: false
+        default: false
+        type: boolean
 
 env:
   TWRP_MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
@@ -132,6 +137,13 @@ jobs:
           source build/envsetup.sh
           lunch "twrp_goyawifi-${VARIANT}"
           mka recoveryimage -j"$(nproc --all)"
+
+      - name: Setup tmate SSH session (on failure or manual request)
+        if: ${{ failure() || inputs.enable_ssh }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 60
+        with:
+          limit-access-to-actor: true
 
       - name: Package artifacts (recovery.img + Odin .tar)
         run: |
