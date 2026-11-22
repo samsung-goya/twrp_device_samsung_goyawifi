@@ -136,10 +136,13 @@ jobs:
           lunch "twrp_goyawifi-${VARIANT}"
           mka recoveryimage -j"$(nproc --all)"
 
-      - name: Setup tmate SSH session (on failure or manual request)
+      - name: Setup upterm SSH session (on failure or manual request)
         if: ${{ failure() || inputs.enable_ssh }}
-        uses: mxschmitt/action-tmate@v3
+        uses: owenthereal/action-upterm@v2
         timeout-minutes: 60
+        with:
+          full-access: true
+          wait-timeout-minutes: 10
 
       - name: Package artifacts (recovery.img + Odin .tar)
         run: |
